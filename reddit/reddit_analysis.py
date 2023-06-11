@@ -1,59 +1,56 @@
-import praw
-import requests
 import datetime
 import json
 import os
+from pathlib import Path
 
-reddit = praw.Reddit(client_id='hJtFEp88TDdHYAOnJ31vuQ', client_secret='TFAywy_Q6-dIfEIARZOvRfg4eZl2Nw', user_agent='perceptify')
+import praw
+import textblob
 
-#input
-keyword = input("Enter keyword: ")
-focusSubreddit = input("Enter subreddit name: ")
-
-#set initial count
-count = 0
-
-#scrape keyword mentions
-for submission in reddit.subreddit('all').search(keyword, limit=5):
-    url = 'https://www.reddit.com'+submission.permalink
-    headers = {'User-agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    if keyword in response.text:
-        count += 1
-
-for submission in reddit.subreddit('entrepreneur').search(keyword, limit=5):
-    url = 'https://www.reddit.com'+submission.permalink
-    headers = {'User-agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    if keyword in response.text:
-        count += 1
-
-for submission in reddit.subreddit('startups').search(keyword, limit=5):
-    url = 'https://www.reddit.com'+submission.permalink
-    headers = {'User-agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    if keyword in response.text:
-        count += 1
-
-subreddit = reddit.subreddit(focusSubreddit)
-
-#comments from top posts (current limit 5)
-for post in subreddit.top(limit=5):
-    post.comments.replace_more(limit=None)
-    comments = post.comments.list()[:5] #top 5 comments
-    for comment in comments:
-        if keyword in comment.body.lower():
-            count += 1
-
-#current date
-now = datetime.datetime.now()
-
-#json
+# Save number of mentions on SupaBase
+# Save sentiment for each day for the past 5 days on SupaBase
+"""
 data = {
     "date": now.strftime("%Y-%m-%d"),
     "keyword": keyword,
     "mentions": count
 }
-json_data = json.dumps(data)
-with open("data.json", "w") as f:
-    f.write(json_data)
+"""
+
+def create_reddit_instance():
+    return praw.Reddit(
+        client_id="hJtFEp88TDdHYAOnJ31vuQ",
+        client_secret="TFAywy_Q6-dIfEIARZOvRfg4eZl2Nw",
+        user_agent="perceptify"
+    )
+
+
+def store_data(data):
+    pass
+
+def analyze(reddit, target, subreddit="all", time_filter="hour"):
+
+    num_mentions = 0
+    sentiments = []
+    def process_comment(comment):
+        nonlocal num_mentions
+
+        text = comment.body
+        num_mentions += text.count(target)
+
+        if num_mentions == 0: return
+
+        polarity, _ = textblob.TextBlob(text).sentiment
+        polarity *= 100
+
+        sentiments.append({
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "keyword": keyword,
+            "sentiment": polarity
+        })
+
+    for submission in reddit.subreddit(subreddit).search(target, time_filter=time_filter, limit=None):
+        submission.comments.replace_more(limit=None)
+        for comment in submission.comments.list():
+            process_comment(comments)
+
+    return num_mentions, sentiments
