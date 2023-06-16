@@ -1,0 +1,19 @@
+{
+    "Company A": {
+      "Mentions": {
+        "Reddit": {
+          "Timestamp: e.g. 2023-6-14 @ 1 am":10
+        },
+        "Twitter": {},
+        "LinkedIn": {}
+      },
+      "Sentiment": {
+        "Reddit": {
+          "Timestamp: e.g. 2023-6-14 @ 1 am":65
+        },
+        "Twitter": {},
+        "LinkedIn": {}
+      }
+    },
+    "Company B": {}
+  }

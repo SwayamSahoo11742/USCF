@@ -5,10 +5,9 @@ from supabase_py import create_client
 
 cl = Client()
 cl.delay_range = [1, 3]
-cl.load_settings("session.json")
 # user must login into instagram to avoid any issues 
-cl.login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD)
-cl.get_timeline_feed()
+company_name = "google" # example 
+
 supabase_url = 'URL'
 supabase_key = 'API_KEY'
 supabase = create_client(supabase_url, supabase_key)
@@ -29,24 +28,28 @@ You go through their history and give them data! Obviously free APIs have limita
 """
 
 # checks the number of mentions on instagram
+def companyRegisters(s):
+   cl.load_settings("session.json")
+   cl.login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD, VERIFICATION_CODE)
+   cl.get_timeline_feed()
+   instagram_analysis(company_name)
+
 def instagram_analysis(s):
     # number of hashtags about company 
         hashtag = cl.hashtag_related_hashtags(s)
-        total = int(hashtag.dict()['media_count'])
-        print('media count: '+ str(hashtag.dict()['media_count']))
+        total = int(len(hashtag)) 
+        print("Total amount of mentions for hashtag : %d" % total) # hashtag.dict()['media_count']))
     # most recent hashtag mentions and removes any hashtags past 5 days 
         recent = cl.hashtag_medias_recent(s, amount = 100)
-        today = datetime.now()
+        today = datetime.now() # current date 
         for key, value in recent.items():
             if 'taken_at' in value:
-                if recent - value['taken_at'] > timedelta(days=5):
+                if recent - value['taken_at'] > datetime.timedelta(days=5):
                     del recent[key]
         # saves values into supabase 
-        save_into_supabase(total)
-
-        def save_into_supabase(total):
-            dv
+        
             
+def updateForHour(s, time)
+
 # runs analysis 
-company_name = "google" # example 
-instagram_analysis(company_name)
+companyRegisters(company_name)
