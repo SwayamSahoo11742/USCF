@@ -7,7 +7,7 @@ cl = Client()
 cl.delay_range = [1, 3]
 cl.load_settings("session.json")
 # user must login into instagram to avoid any issues 
-cl.login("USERNAME", "PASSWORD")
+cl.login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD)
 cl.get_timeline_feed()
 supabase_url = 'URL'
 supabase_key = 'API_KEY'
