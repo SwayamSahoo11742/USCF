@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import praw
+import pytz
 import textblob
 
 
@@ -22,7 +23,8 @@ def store(data):
 
 
 def convert_time(utc_time):
-    return datetime.fromtimestamp(utc_time).replace(minute=0, second=0, microsecond=0).isoformat()
+    et = pytz.timezone('US/Eastern')
+    return datetime.fromtimestamp(utc_time, tz=et).replace(minute=0, second=0, microsecond=0).isoformat()
 
 
 def count_mentions(text, target):
@@ -31,7 +33,7 @@ def count_mentions(text, target):
 
 def compute_sentiment_score(text):
     polarity, _ = textblob.TextBlob(text).sentiment
-    return polarity
+    return (polarity + 1) * 50
 
 
 def process_and_store_data(dt, text, target, mentions, sentiments):
@@ -69,7 +71,7 @@ def analyze(reddit, target, time_filter="hour"):
     mentions = defaultdict(int)
     sentiments = defaultdict(lambda: (0, 0))
 
-    for submission in reddit.subreddit("all").search(target, time_filter=time_filter, limit=None):
+    for submission in reddit.subreddit("all").search(target, sort="new", time_filter=time_filter, limit=None):
         # print(f"https://www.reddit.com/{submission.permalink}")
         process_submission(submission, target, mentions, sentiments)
 
@@ -80,11 +82,27 @@ def analyze(reddit, target, time_filter="hour"):
     return mentions, sentiments
 
 
-def main():
-    target = "facebook" # replace with command-line arg or whatever
+def register_company(company_name):
     reddit = create_reddit_instance()
-    num_mentions, sentiments = analyze(reddit, target)
+    mentions, sentiments = analyze(reddit, company_name, time_filter="month")
+    return mentions, sentiments
 
 
-# if __name__ == "__main__":
-#     main()
+def process_hourly(company_name):
+    reddit = create_reddit_instance()
+    mentions, sentiments = analyze(reddit, company_name, time_filter="hour")
+    return mentions, sentiments
+
+
+# def search_time_window(target, start, time_diff):
+#     for submission in reddit.subreddit("all").search(target, sort="new", limit=None):
+#         if submission.created_utc - start > time_diff:
+#             return
+#         yield submission
+
+
+# def main():
+#     reddit = create_reddit_instance()
+#     mentions, sentiments = analyze(reddit, "facebook", time_filter="hour")
+#     print(mentions)
+#     print(sentiments)
