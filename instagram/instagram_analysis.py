@@ -164,3 +164,4 @@ def main():
     companyRegisters(company_name)
     instagram_analysis(company_name)
     print("Total amount of mentions for hashtag : %d" % total_mentions(company_name))
+    print()
