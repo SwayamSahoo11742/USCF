@@ -12,7 +12,7 @@ from instagrapi.exceptions import (
 import datetime
 from datetime import timedelta
 from textblob import TextBlob
-from supabase_py import create_client
+## from supabase_py import create_client
 import pytz
 
 cl = Client()
@@ -22,7 +22,7 @@ ACCOUNT_USERNAME = ""
 ACCOUNT_PASSWORD = ""
 supabase_url = 'URL'
 supabase_key = 'API_KEY'
-supabase = create_client(supabase_url, supabase_key)
+## supabase = create_client(supabase_url, supabase_key)
 """
 Task specifications
 
