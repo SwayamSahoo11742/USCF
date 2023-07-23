@@ -1,59 +1,108 @@
-import praw
-import requests
-import datetime
 import json
 import os
+from collections import defaultdict
+from datetime import datetime
+from pathlib import Path
 
-reddit = praw.Reddit(client_id='hJtFEp88TDdHYAOnJ31vuQ', client_secret='TFAywy_Q6-dIfEIARZOvRfg4eZl2Nw', user_agent='perceptify')
+import praw
+import pytz
+import textblob
 
-#input
-keyword = input("Enter keyword: ")
-focusSubreddit = input("Enter subreddit name: ")
 
-#set initial count
-count = 0
+def create_reddit_instance():
+    return praw.Reddit(
+        client_id="hJtFEp88TDdHYAOnJ31vuQ",
+        client_secret="TFAywy_Q6-dIfEIARZOvRfg4eZl2Nw",
+        user_agent="perceptify"
+    )
 
-#scrape keyword mentions
-for submission in reddit.subreddit('all').search(keyword, limit=5):
-    url = 'https://www.reddit.com'+submission.permalink
-    headers = {'User-agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    if keyword in response.text:
-        count += 1
 
-for submission in reddit.subreddit('entrepreneur').search(keyword, limit=5):
-    url = 'https://www.reddit.com'+submission.permalink
-    headers = {'User-agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    if keyword in response.text:
-        count += 1
+# TODO: Save data to Supabase
+def store(data):
+    pass
 
-for submission in reddit.subreddit('startups').search(keyword, limit=5):
-    url = 'https://www.reddit.com'+submission.permalink
-    headers = {'User-agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    if keyword in response.text:
-        count += 1
 
-subreddit = reddit.subreddit(focusSubreddit)
+def convert_time(utc_time):
+    et = pytz.timezone('US/Eastern')
+    return datetime.fromtimestamp(utc_time, tz=et).replace(minute=0, second=0, microsecond=0).isoformat()
 
-#comments from top posts (current limit 5)
-for post in subreddit.top(limit=5):
-    post.comments.replace_more(limit=None)
-    comments = post.comments.list()[:5] #top 5 comments
-    for comment in comments:
-        if keyword in comment.body.lower():
-            count += 1
 
-#current date
-now = datetime.datetime.now()
+def count_mentions(text, target):
+    return text.count(target)
 
-#json
-data = {
-    "date": now.strftime("%Y-%m-%d"),
-    "keyword": keyword,
-    "mentions": count
-}
-json_data = json.dumps(data)
-with open("data.json", "w") as f:
-    f.write(json_data)
+
+def compute_sentiment_score(text):
+    polarity, _ = textblob.TextBlob(text).sentiment
+    return (polarity + 1) * 50
+
+
+def process_and_store_data(dt, text, target, mentions, sentiments):
+    num_mentions = count_mentions(text, target)
+
+    if num_mentions == 0: return
+
+    mentions[dt] += num_mentions
+
+    sentiment_score = compute_sentiment_score(text)
+
+    total_sentiment_score, entry_count = sentiments[dt]
+    sentiments[dt] = (total_sentiment_score + sentiment_score, entry_count + 1)
+
+
+def process_comment(comment, target, mentions, sentiments):
+    dt = convert_time(comment.created_utc)
+    text = comment.body.lower()
+    process_and_store_data(dt, text, target, mentions, sentiments)
+
+
+def process_submission(submission, target, mentions, sentiments):
+    # Process the title and text of the main post.
+    dt = convert_time(submission.created_utc)
+    text = f"{submission.title}\n\n{submission.selftext}".lower()
+    process_and_store_data(dt, text, target, mentions, sentiments)
+    
+    # Process the comments and nested replies.
+    submission.comments.replace_more(limit=None)
+    for comment in submission.comments.list():
+        process_comment(comment, target, mentions, sentiments)
+
+
+def analyze(reddit, target, time_filter="hour"):
+    mentions = defaultdict(int)
+    sentiments = defaultdict(lambda: (0, 0))
+
+    for submission in reddit.subreddit("all").search(target, sort="new", time_filter=time_filter, limit=None):
+        # print(f"https://www.reddit.com/{submission.permalink}")
+        process_submission(submission, target, mentions, sentiments)
+
+    # Compute averages.
+    sentiments = {k : (total_sentiment_score / entry_count) 
+                  for k, (total_sentiment_score, entry_count) in sentiments.items()}
+
+    return mentions, sentiments
+
+
+def register_company(company_name):
+    reddit = create_reddit_instance()
+    mentions, sentiments = analyze(reddit, company_name, time_filter="month")
+    return mentions, sentiments
+
+
+def process_hourly(company_name):
+    reddit = create_reddit_instance()
+    mentions, sentiments = analyze(reddit, company_name, time_filter="hour")
+    return mentions, sentiments
+
+
+# def search_time_window(target, start, time_diff):
+#     for submission in reddit.subreddit("all").search(target, sort="new", limit=None):
+#         if submission.created_utc - start > time_diff:
+#             return
+#         yield submission
+
+
+# def main():
+#     reddit = create_reddit_instance()
+#     mentions, sentiments = analyze(reddit, "facebook", time_filter="hour")
+#     print(mentions)
+#     print(sentiments)
