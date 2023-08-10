@@ -18,11 +18,8 @@ import pytz
 cl = Client()
 cl.delay_range = [1, 3]
 # user must login into instagram to avoid any issues 
-ACCOUNT_USERNAME = ""
-ACCOUNT_PASSWORD = ""
-supabase_url = 'URL'
-supabase_key = 'API_KEY'
-## supabase = create_client(supabase_url, supabase_key)
+ACCOUNT_USERNAME = "DodoPot11742"
+ACCOUNT_PASSWORD = "myhome2911!"
 """
 Task specifications
 
@@ -165,3 +162,4 @@ def main():
     instagram_analysis(company_name)
     print("Total amount of mentions for hashtag : %d" % total_mentions(company_name))
     print()
+main()

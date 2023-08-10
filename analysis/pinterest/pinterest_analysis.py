@@ -17,11 +17,10 @@ supabase_key = 'API_KEY'
 supabase: Client = create_client(supabase_url, supabase_key)
 
 def pinterest_analysis(company_name):
-    mentions = defaultdict(-1)
-    sentiment = defaultdict(-1)
+    sentiment = defaultdict(None)
     pins = getPins(company_name)
     sentiment = getSentiment(pins)
-    storeData(len(pins), sentiment, mentions, sentiment)
+    return {"count":len(pins), "sentiment":sentiment}
 
 def getPins(query):
     url = "https://in.pinterest.com/search/pins/?q=" + query
@@ -69,11 +68,4 @@ def getSentiment(pins):
     sentiment = (sentiment+1)*50
 
     return int(sentiment)
-
-
-def storeData(pins_count, sentiment, mention_dict, sentiment_dict):
-    timestamp = datetime.now(TZ).strftime('%Y-%m-%d %H')
-    mention_dict[timestamp] = pins_count
-    sentiment_dict[timestamp] = sentiment
-     
 
